@@ -1,6 +1,7 @@
 node_modules
 .next/
 out/
+build/
 dist/
 .env
 .env.local
@@ -9,3 +10,4 @@ dist/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+prisma/migrations/

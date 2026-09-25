@@ -1,36 +1,47 @@
-# TallyVote Admin 🗳️
+# TallyVote — Multi-Tenant Voting SaaS 🗳️
 
-The admin dashboard for managing elections, viewing live results, and generating QR codes.
-
-**Paired with:** `tallyvote-voter` — both apps share one Supabase project.
-
-## Stack
-- **Next.js 14** (App Router) · **Tailwind CSS** · **Outfit font**
-- **Supabase** (Postgres + Realtime) · **Recharts** · **Vercel**
-
-## Getting Started
+## Quick Start
 
 ```bash
 yarn install
-cp .env.local.example .env.local   # add your Supabase keys + voter app URL
-yarn dev                            # runs on http://localhost:3000
+cp .env.local.example .env.local
+# Fill in DATABASE_URL, NEXTAUTH_URL, NEXTAUTH_SECRET
+
+yarn db:push     # create tables in Postgres
+yarn db:seed     # seed superadmin + test org
+yarn dev         # localhost:3000
 ```
 
-## Env vars
+## Login
+```
+Superadmin → superadmin@tallyvote.app / Admin@1234
+Test Org   → admin@testorg.com / Admin@1234
+```
 
-| Variable | Description |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server-side only |
-| `NEXT_PUBLIC_VOTER_APP_URL` | URL of the voter app (e.g. `https://vote.tallyvote.app`) |
+## Generate NEXTAUTH_SECRET
+```bash
+openssl rand -base64 32
+```
 
-## Deploy to Vercel
+## Prisma Commands
+```bash
+yarn db:push      # sync schema to DB
+yarn db:seed      # seed test data
+yarn db:studio    # visual DB browser
+yarn db:reset     # drop + recreate + reseed
+```
 
-1. Push to GitHub → import on vercel.com
-2. Add env vars → Deploy
-3. Set custom domain: `admin.tallyvote.app`
-
-## How the apps communicate
-
-Both apps talk to the **same Supabase project**. When a voter casts a vote on `tallyvote-voter`, Supabase Realtime pushes the update and the admin dashboard's charts update live via `useRealtimeVotes`.
+## Routes
+```
+/auth/login           → shared login
+/superadmin           → platform overview
+/superadmin/orgs      → manage tenants
+/superadmin/orgs/new  → CREATE TENANT
+/superadmin/elections → all elections
+/superadmin/revenue   → MRR breakdown
+/dashboard            → org dashboard
+/dashboard/elections  → org elections
+/dashboard/results    → live results
+/dashboard/create     → create election
+/dashboard/qr         → QR codes
+```

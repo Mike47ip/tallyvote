@@ -4,10 +4,6 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: { outfit: ['Outfit','sans-serif'] },
-      colors: {
-        navy: { DEFAULT:'#0F1629', light:'#1A2342' },
-        surface: { DEFAULT:'#151D35', 2:'#1E2A47' },
-      },
     },
   },
   plugins: [],
