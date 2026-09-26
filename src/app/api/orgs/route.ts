@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { getToken } from 'next-auth/jwt'
 import { createOrg } from '@/lib/db'
+
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    console.log('SESSION USER:', JSON.stringify(session?.user))
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+    console.log('TOKEN:', JSON.stringify(token))
 
-    if (!session?.user) {
+    if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-   
-    if ((session.user as any).role !== 'superadmin') {
-      console.log('Role check failed, got:', (session.user as any).role)
+    if (token.role !== 'superadmin') {
+      console.log('Role check failed, got:', token.role)
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

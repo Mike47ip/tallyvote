@@ -1,25 +1,18 @@
-import { withAuth } from 'next-auth/middleware'
-import { NextResponse } from 'next/server'
+// src/middleware.ts
+import { NextRequest, NextResponse } from 'next/server'
 
-export default withAuth(
-  function middleware(req) {
-    const { pathname } = req.nextUrl
-    const token = req.nextauth.token
+export async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl
+  const cookie = req.cookies.get('tallyvote-session')
 
-    if (pathname === '/') {
-      if (token?.role === 'superadmin') return NextResponse.redirect(new URL('/superadmin', req.url))
-      if (token?.role === 'org_admin')  return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-    if (pathname.startsWith('/superadmin') && token?.role !== 'superadmin') {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
-    if (pathname.startsWith('/dashboard') && token?.role === 'superadmin') {
-      return NextResponse.redirect(new URL('/superadmin', req.url))
-    }
-    return NextResponse.next()
-  },
-  { callbacks: { authorized: ({ token }) => !!token } }
-)
+  if (!cookie?.value) {
+    return NextResponse.redirect(new URL('/auth/login', req.url))
+  }
+
+  // Let the page-level getSession() handle full verification and role checks.
+  // Here we just confirm the cookie exists so unauthenticated users can't access protected routes.
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: ['/((?!auth|api|_next/static|_next/image|favicon.ico).*)',],

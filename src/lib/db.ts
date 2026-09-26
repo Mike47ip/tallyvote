@@ -1,9 +1,9 @@
+// src/lib/db.ts
 import { prisma } from './prisma'
-import { getServerSession } from 'next-auth'
-import { authOptions } from './auth'
+import { getSession } from './session'
 import type { PlatformStats, VoteCount } from '@/types'
 
-export async function getSession() { return getServerSession(authOptions) }
+export { getSession }
 
 // ── SUPERADMIN ──
 export async function getPlatformStats(): Promise<PlatformStats> {
@@ -62,8 +62,8 @@ export async function createOrg(payload: {
     await tx.profile.create({
       data: { id: user.id, role: 'org_admin', orgId: org.id, fullName: payload.name },
     })
-    const freeMethods = ['qr','shortcode','link']
-    const allMethods  = ['qr','shortcode','link','email','sms','ussd']
+    const freeMethods = ['qr', 'shortcode', 'link']
+    const allMethods  = ['qr', 'shortcode', 'link', 'email', 'sms', 'ussd']
     await tx.orgVotingMethod.createMany({
       data: allMethods.map(method => ({
         orgId: org.id, method: method as any,

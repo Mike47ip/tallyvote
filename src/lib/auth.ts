@@ -29,7 +29,7 @@ export const authOptions: NextAuthOptions = {
           const org = await prisma.organization.findUnique({
             where: { id: user.profile.orgId }, select: { isActive: true },
           })
-          if (!org?.isActive) throw new Error('Organization is suspended. Contact TallyVote support.')
+          if (!org?.isActive) throw new Error('Organization is suspended.')
         }
 
         return {
@@ -45,7 +45,7 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id     = user.id
+        token.sub    = user.id           // sub is the standard JWT user ID field
         token.role   = (user as any).role
         token.org_id = (user as any).org_id
       }
@@ -53,7 +53,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id     = token.id
+        (session.user as any).id     = token.sub    // read from sub
         (session.user as any).role   = token.role
         (session.user as any).org_id = token.org_id
       }
