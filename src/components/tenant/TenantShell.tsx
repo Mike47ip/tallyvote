@@ -1,8 +1,8 @@
+// src/components/tenant/TenantShell.tsx
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn, VOTER_URL } from '@/lib/utils'
-import { signOut } from 'next-auth/react'
 import { LayoutDashboard, ClipboardList, Trophy, Plus, QrCode, LogOut, ExternalLink, ChevronRight } from 'lucide-react'
 import type { Organization } from '@/types'
 
@@ -18,6 +18,13 @@ const planColors = { free:'bg-slate-500/10 text-slate-400 border-slate-500/20', 
 
 export function TenantShell({ children, title, subtitle, org }: { children:React.ReactNode; title:string; subtitle?:string; org?: Organization }) {
   const path = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/auth/login')
+  }
+
   return (
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 w-60 bg-[#151D35] border-r border-white/[0.08] flex flex-col z-50">
@@ -46,7 +53,7 @@ export function TenantShell({ children, title, subtitle, org }: { children:React
               <div className="min-w-0"><p className="text-xs font-semibold truncate">{org.name}</p><p className="text-[10px] text-slate-500">Admin</p></div>
             </div>
           )}
-          <button onClick={() => signOut({ callbackUrl: '/auth/login' })}
+          <button onClick={handleLogout}
             className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all w-full">
             <LogOut size={14}/>Logout
           </button>

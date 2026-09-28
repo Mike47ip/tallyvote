@@ -42,7 +42,7 @@ model User {
 
   profile      Profile?
   organization Organization? @relation("OrgOwner")
-  votes        Vote[]
+  votes          Vote[]
 
   @@map("users")
 }
@@ -102,6 +102,7 @@ model Election {
   description String?
   status      ElectionStatus @default(draft)
   anonymous   Boolean        @default(true)
+  restricted  Boolean        @default(false)
   shortCode   String?        @unique @map("short_code")
   startsAt    DateTime       @map("starts_at")
   endsAt      DateTime       @map("ends_at")
@@ -109,7 +110,8 @@ model Election {
 
   organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   candidates   Candidate[]
-  votes        Vote[]
+  votes          Vote[]
+  eligibleVoters EligibleVoter[]
 
   @@index([orgId, status])
   @@index([shortCode])
@@ -146,4 +148,22 @@ model Vote {
   @@unique([electionId, voterFingerprint])
   @@index([electionId, candidateId])
   @@map("votes")
+}
+
+model EligibleVoter {
+  id         String   @id @default(uuid())
+  electionId String   @map("election_id")
+  name       String
+  phone      String
+  voteCode   String   @map("vote_code")
+  hasVoted   Boolean  @default(false) @map("has_voted")
+  smsSent    Boolean  @default(false) @map("sms_sent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  election Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  @@unique([electionId, phone])
+  @@unique([electionId, voteCode])
+  @@index([electionId])
+  @@map("eligible_voters")
 }
