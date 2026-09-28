@@ -1,12 +1,14 @@
+// src/app/dashboard/elections/page.tsx
 import { TenantShell } from '@/components/tenant/TenantShell'
 import { getSession, getOrgByOwner, getOrgElections } from '@/lib/db'
 import { TenantElectionsClient } from '@/components/tenant/TenantElectionsClient'
 import { redirect } from 'next/navigation'
 export const revalidate = 10
+
 export default async function ElectionsPage() {
   const session = await getSession()
-  if (!session?.user) redirect('/auth/login')
-  const org = await getOrgByOwner((session.user as any).id)
+  if (!session?.id) redirect('/auth/login')
+  const org = await getOrgByOwner(session.id)
   if (!org) redirect('/dashboard')
   const elections = await getOrgElections(org.id)
   return (
