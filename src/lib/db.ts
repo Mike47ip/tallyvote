@@ -117,17 +117,20 @@ export async function getVoteCounts(electionId: string): Promise<VoteCount[]> {
 export async function createElection(payload: {
   org_id: string; title: string; description?: string
   starts_at: string; ends_at: string; anonymous: boolean
-  short_code: string; candidates: string[]
+  restricted: boolean; short_code: string; candidates: string[]
 }) {
   return prisma.$transaction(async tx => {
     const election = await tx.election.create({
       data: {
-        orgId: payload.org_id, title: payload.title,
-        description: payload.description, status: 'live',
-        anonymous: payload.anonymous,
-        shortCode: payload.short_code.toUpperCase(),
-        startsAt: new Date(payload.starts_at),
-        endsAt: new Date(payload.ends_at),
+        orgId:       payload.org_id,
+        title:       payload.title,
+        description: payload.description,
+        status:      'live',
+        anonymous:   payload.anonymous,
+        restricted:  payload.restricted,
+        shortCode:   payload.short_code.toUpperCase(),
+        startsAt:    new Date(payload.starts_at),
+        endsAt:      new Date(payload.ends_at),
       },
     })
     await tx.candidate.createMany({
@@ -136,5 +139,53 @@ export async function createElection(payload: {
       })),
     })
     return election
+  })
+}
+
+// ── ELIGIBLE VOTERS ──
+function generateVoteCode(): string {
+  return Math.random().toString(36).slice(2, 8).toUpperCase()
+}
+
+export async function createEligibleVoters(
+  electionId: string,
+  voters: { name: string; phone: string }[]
+) {
+  const data = voters.map(v => ({
+    electionId,
+    name:     v.name.trim(),
+    phone:    v.phone.trim(),
+    voteCode: generateVoteCode(),
+  }))
+  return prisma.eligibleVoter.createMany({ data, skipDuplicates: true })
+}
+
+export async function getEligibleVoters(electionId: string) {
+  return prisma.eligibleVoter.findMany({
+    where: { electionId },
+    orderBy: { createdAt: 'asc' },
+  })
+}
+
+export async function verifyVoteCode(electionId: string, voteCode: string) {
+  const voter = await prisma.eligibleVoter.findFirst({
+    where: { electionId, voteCode: voteCode.toUpperCase() },
+  })
+  if (!voter) return { valid: false, reason: 'Invalid code' }
+  if (voter.hasVoted) return { valid: false, reason: 'ALREADY_VOTED' }
+  return { valid: true, voter }
+}
+
+export async function markVoterAsVoted(electionId: string, voteCode: string) {
+  return prisma.eligibleVoter.updateMany({
+    where: { electionId, voteCode: voteCode.toUpperCase() },
+    data: { hasVoted: true },
+  })
+}
+
+export async function markSMSSent(voterId: string) {
+  return prisma.eligibleVoter.update({
+    where: { id: voterId },
+    data: { smsSent: true },
   })
 }
