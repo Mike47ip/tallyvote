@@ -1,9 +1,10 @@
 // src/app/dashboard/create/page.tsx
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { TenantShell } from '@/components/tenant/TenantShell'
 import { Card, Button, Input, Alert } from '@/components/ui'
+import * as XLSX from 'xlsx'
 
 interface Voter { name: string; phone: string }
 
@@ -15,26 +16,77 @@ export default function CreateElectionPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [published, setPublished] = useState<{id:string; short_code:string; restricted:boolean}|null>(null)
-  const csvRef = useRef<HTMLInputElement>(null)
+  const [dragOver, setDragOver] = useState(false)
+  const [csvFileName, setCsvFileName] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
   const f = (k: string, v: any) => setForm(p => ({...p, [k]:v}))
 
-  // CSV parser
-  function handleCSV(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const lines = (ev.target?.result as string).split('\n').filter(Boolean)
-      const parsed: Voter[] = []
-      for (const line of lines) {
-        const [name, phone] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''))
-        if (name && phone && name.toLowerCase() !== 'name') parsed.push({ name, phone })
-      }
-      if (parsed.length > 0) setVoters(parsed)
+  function parseCSVText(text: string): Voter[] {
+    const lines = text.split('\n').filter(Boolean)
+    const parsed: Voter[] = []
+    for (const line of lines) {
+      const [name, phone] = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''))
+      if (name && phone && name.toLowerCase() !== 'name') parsed.push({ name, phone })
     }
-    reader.readAsText(file)
+    return parsed
+  }
+
+  function parseXLSX(buffer: ArrayBuffer): Voter[] {
+    const workbook = XLSX.read(buffer, { type: 'array' })
+    const sheet = workbook.Sheets[workbook.SheetNames[0]]
+    const rows: any[] = XLSX.utils.sheet_to_json(sheet, { header: 1 })
+    const parsed: Voter[] = []
+    for (const row of rows) {
+      const name = String(row[0] ?? '').trim()
+      const phone = String(row[1] ?? '').trim()
+      if (name && phone && name.toLowerCase() !== 'name') parsed.push({ name, phone })
+    }
+    return parsed
+  }
+
+  function handleFile(file: File) {
+    if (!file) return
+    const isXLSX = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+    const isCSV  = file.name.endsWith('.csv')
+    if (!isXLSX && !isCSV) return
+
+    setCsvFileName(file.name)
+    const reader = new FileReader()
+
+    if (isCSV) {
+      reader.onload = ev => {
+        const parsed = parseCSVText(ev.target?.result as string)
+        if (parsed.length > 0) setVoters(parsed)
+      }
+      reader.readAsText(file)
+    } else {
+      reader.onload = ev => {
+        const parsed = parseXLSX(ev.target?.result as ArrayBuffer)
+        if (parsed.length > 0) setVoters(parsed)
+      }
+      reader.readAsArrayBuffer(file)
+    }
+  }
+
+  function handleFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (file) handleFile(file)
     e.target.value = ''
   }
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault(); e.stopPropagation(); setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFile(file)
+  }, [])
 
   function updateVoter(i: number, k: keyof Voter, v: string) {
     setVoters(p => p.map((voter, j) => j === i ? { ...voter, [k]: v } : voter))
@@ -67,6 +119,7 @@ export default function CreateElectionPage() {
   }
 
   const inp = "w-full bg-[#1E2A47] border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-indigo-500 transition-colors placeholder:text-slate-500"
+  const validVoterCount = voters.filter(v => v.name.trim() && v.phone.trim()).length
 
   if (published) return (
     <TenantShell title="Election Published 🎉">
@@ -164,22 +217,39 @@ export default function CreateElectionPage() {
             {/* Eligible Voters — only shown for restricted */}
             {form.restricted && (
               <div className="border border-white/10 rounded-xl p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-sm font-bold">Eligible Voters</p>
-                    <p className="text-[11px] text-slate-400 mt-0.5">Each will receive a unique SMS code</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <input ref={csvRef} type="file" accept=".csv" className="hidden" onChange={handleCSV}/>
-                    <button type="button" onClick={() => csvRef.current?.click()}
-                      className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600/10 text-emerald-400 border border-emerald-600/20">
-                      📂 Upload CSV
-                    </button>
-                  </div>
+                <div>
+                  <p className="text-sm font-bold">Eligible Voters</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Each will receive a unique SMS code</p>
                 </div>
 
-                <p className="text-[10px] text-slate-500">CSV format: <span className="font-mono">name,phone</span> (one per line, no header needed — or include "name,phone" header)</p>
+                {/* Drag & Drop Zone */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileRef.current?.click()}
+                  className="cursor-pointer rounded-xl border-2 border-dashed transition-all py-6 px-4 text-center"
+                  style={{
+                    borderColor: dragOver ? '#6366F1' : 'rgba(255,255,255,0.12)',
+                    background: dragOver ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
+                  }}
+                >
+                  <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileInput}/>
+                  <div className="text-2xl mb-2">{csvFileName ? '✅' : '📂'}</div>
+                  {csvFileName ? (
+                    <>
+                      <p className="text-sm font-semibold text-emerald-400">{csvFileName}</p>
+                      <p className="text-[11px] text-slate-400 mt-1">{validVoterCount} voter{validVoterCount !== 1 ? 's' : ''} loaded — click to replace</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-semibold text-slate-300">Drop your file here or click to browse</p>
+                      <p className="text-[11px] text-slate-500 mt-1">Accepts <span className="font-mono">.csv</span> or <span className="font-mono">.xlsx</span> — columns: name, phone</p>
+                    </>
+                  )}
+                </div>
 
+                {/* Manual entry */}
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                   {voters.map((v, i) => (
                     <div key={i} className="flex gap-2 items-center">
@@ -192,14 +262,15 @@ export default function CreateElectionPage() {
                   ))}
                 </div>
 
-                <button type="button" onClick={() => setVoters(p => [...p, { name:'', phone:'' }])}
-                  className="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600/10 text-indigo-400 border border-indigo-600/20">
-                  + Add voter
-                </button>
-
-                <p className="text-[11px] text-slate-400">
-                  {voters.filter(v => v.name.trim() && v.phone.trim()).length} eligible voter{voters.filter(v => v.name.trim() && v.phone.trim()).length !== 1 ? 's' : ''} added
-                </p>
+                <div className="flex items-center justify-between">
+                  <button type="button" onClick={() => setVoters(p => [...p, { name:'', phone:'' }])}
+                    className="px-3 py-2 text-xs font-semibold rounded-lg bg-indigo-600/10 text-indigo-400 border border-indigo-600/20">
+                    + Add voter manually
+                  </button>
+                  <p className="text-[11px] text-slate-400">
+                    {validVoterCount} voter{validVoterCount !== 1 ? 's' : ''} added
+                  </p>
+                </div>
               </div>
             )}
 
