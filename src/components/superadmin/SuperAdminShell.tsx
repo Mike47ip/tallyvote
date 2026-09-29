@@ -1,8 +1,8 @@
+// src/components/superadmin/SuperAdminShell.tsx
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { signOut } from 'next-auth/react'
 import { LayoutDashboard, Building2, Trophy, DollarSign, Settings, LogOut, ChevronRight } from 'lucide-react'
 
 const nav = [
@@ -15,6 +15,13 @@ const nav = [
 
 export function SuperAdminShell({ children, title, subtitle }: { children:React.ReactNode; title:string; subtitle?:string }) {
   const path = usePathname()
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/auth/login')
+  }
+
   return (
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 w-60 bg-[#151D35] border-r border-white/[0.08] flex flex-col z-50">
@@ -37,7 +44,7 @@ export function SuperAdminShell({ children, title, subtitle }: { children:React.
           ))}
         </nav>
         <div className="p-4 border-t border-white/[0.08]">
-          <button onClick={() => signOut({ callbackUrl: '/auth/login' })}
+          <button onClick={handleLogout}
             className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all w-full">
             <LogOut size={16}/>Logout
           </button>

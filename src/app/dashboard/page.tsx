@@ -1,3 +1,5 @@
+// src\app\dashboard\page.tsx
+
 import { TenantShell } from '@/components/tenant/TenantShell'
 import { StatCard, Card } from '@/components/ui'
 import { CandidateBar } from '@/components/tenant/CandidateBar'
@@ -10,8 +12,8 @@ export const revalidate = 10
 
 export default async function DashboardPage() {
   const session = await getSession()
-  if (!session?.user) redirect('/auth/login')
-  const org = await getOrgByOwner((session.user as any).id)
+if (!session?.id) redirect('/auth/login')
+const org = await getOrgByOwner(session.id)
   if (!org) return <TenantShell title="Dashboard"><div className="text-center py-20"><p className="text-slate-400">No organization found. Contact support.</p></div></TenantShell>
 
   const elections = await getOrgElections(org.id)
