@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // src/app/api/orgs/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, createOrg } from '@/lib/db'

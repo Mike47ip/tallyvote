@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // src/app/api/elections/[id]/verify-code/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyVoteCode } from '@/lib/db'

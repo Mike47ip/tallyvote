@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // src/app/api/elections/[id]/mark-voted/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { markVoterAsVoted } from '@/lib/db'
