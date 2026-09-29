@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // src/app/api/elections/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getOrgByOwner, createElection, createEligibleVoters, getEligibleVoters, markSMSSent } from '@/lib/db'

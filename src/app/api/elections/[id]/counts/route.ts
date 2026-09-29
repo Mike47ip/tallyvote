@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // tallyvote: src/app/api/elections/[id]/counts/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getVoteCounts } from '@/lib/db'

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // src/app/api/orgs/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, toggleOrgStatus } from '@/lib/db'
