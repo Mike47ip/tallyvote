@@ -105,7 +105,7 @@ export default function LoginPage() {
           </button>
         </form>
         <p className="text-center text-xs mt-8 text-slate-500">
-          Don't have an account? Contact your TallyVote administrator.
+            Don&apos;t have an account? Contact your TallyVote administrator.
         </p>
       </div>
     </div>
